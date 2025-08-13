@@ -66,6 +66,17 @@ export const ChatInterface: React.FC = () => {
     setInputValue('');
     setIsLoading(true);
 
+    // 创建一个流式显示的助手消息
+    const streamingMessage: Message = {
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+      isStreaming: true
+    };
+
+    // 先添加空的助手消息，准备接收流式内容
+    setMessages(prev => [...prev, streamingMessage]);
+
     try {
       // 准备发送给AI的消息历史
       const chatMessages = messages
@@ -81,28 +92,47 @@ export const ChatInterface: React.FC = () => {
         content: currentInput
       });
 
-      // 调用AI服务
-      const response = await aiService.sendMessage({
-        messages: chatMessages
+      // 调用流式AI服务
+      const response = await aiService.sendMessageStream(
+        { messages: chatMessages },
+        (chunk: string) => {
+          // 每次收到新的文本块时，更新消息内容
+          setMessages(prev => {
+            const newMessages = [...prev];
+            const lastMessage = newMessages[newMessages.length - 1];
+            if (lastMessage.role === 'assistant' && lastMessage.isStreaming) {
+              lastMessage.content += chunk;
+            }
+            return newMessages;
+          });
+        }
+      );
+
+      // 流式响应完成后，更新最终状态
+      setMessages(prev => {
+        const newMessages = [...prev];
+        const lastMessage = newMessages[newMessages.length - 1];
+        if (lastMessage.role === 'assistant') {
+          lastMessage.isStreaming = false;
+          if (!response.success) {
+            lastMessage.content = `❌ ${response.error || '抱歉，我遇到了一些问题，请重试。'}`;
+          }
+        }
+        return newMessages;
       });
 
-      const assistantMessage: Message = {
-        role: 'assistant',
-        content: response.success 
-          ? response.content 
-          : `❌ ${response.error || '抱歉，我遇到了一些问题，请重试。'}`,
-        timestamp: new Date()
-      };
-
-      setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
       console.error('发送消息时出错:', error);
-      const errorMessage: Message = {
-        role: 'assistant',
-        content: '❌ 抱歉，发生了意外错误。请检查网络连接并重试。',
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, errorMessage]);
+      // 更新最后一条消息为错误信息
+      setMessages(prev => {
+        const newMessages = [...prev];
+        const lastMessage = newMessages[newMessages.length - 1];
+        if (lastMessage.role === 'assistant') {
+          lastMessage.content = '❌ 抱歉，发生了意外错误。请检查网络连接并重试。';
+          lastMessage.isStreaming = false;
+        }
+        return newMessages;
+      });
     } finally {
       setIsLoading(false);
     }
@@ -167,11 +197,22 @@ export const ChatInterface: React.FC = () => {
                 }`}>
                   <div className="whitespace-pre-wrap break-words leading-relaxed text-sm sm:text-base">
                     {message.content}
+                    {/* 流式输入时显示光标 */}
+                    {message.isStreaming && (
+                      <span className="inline-block w-1 h-4 bg-blue-500 ml-1 animate-pulse"></span>
+                    )}
                   </div>
-                  <div className={`text-xs mt-2 ${
+                  <div className={`text-xs mt-2 flex items-center justify-between ${
                     message.role === 'user' ? 'text-blue-200' : 'text-gray-500'
                   }`}>
-                    {formatTime(message.timestamp)}
+                    <span>{formatTime(message.timestamp)}</span>
+                    {/* 流式状态指示器 */}
+                    {message.isStreaming && (
+                      <span className="text-blue-500 text-xs flex items-center">
+                        <div className="w-1 h-1 bg-blue-500 rounded-full animate-pulse mr-1"></div>
+                        正在接收...
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
