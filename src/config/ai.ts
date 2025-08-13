@@ -1,4 +1,4 @@
-import type { AIConfig } from '../types';
+import type { AIConfig, TavilyConfig, SearchTool } from '../types';
 import { getCurrentDateTime, getDayOfWeek } from '../utils/dateUtils';
 
 export const AI_CONFIG: AIConfig = {
@@ -8,6 +8,36 @@ export const AI_CONFIG: AIConfig = {
   maxTokens: 2000,
   temperature: 0.3,
   systemPrompt: '你是一个专业的编程助手，擅长代码编写、调试和技术问题解答。请用中文回答问题。'
+};
+
+// Tavily 搜索配置
+export const TAVILY_CONFIG: TavilyConfig = {
+  apiKey: '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',
+  baseURL: 'https://api.tavily.com'
+};
+
+// 搜索工具定义
+export const SEARCH_TOOL: SearchTool = {
+  type: "function",
+  function: {
+    name: "info_search_web",
+    description: "使用搜索引擎搜索网页内容，用于获取最新信息或查找参考资料。",
+    parameters: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "搜索关键词，使用Google搜索风格，建议3-5个关键词。"
+        },
+        date_range: {
+          type: "string",
+          enum: ["all", "past_hour", "past_day", "past_week", "past_month", "past_year"],
+          description: "（可选）搜索结果的时间范围筛选。可选值：all-全部，past_hour-过去1小时，past_day-过去1天，past_week-过去1周，past_month-过去1月，past_year-过去1年。"
+        }
+      },
+      required: ["query"]
+    }
+  }
 };
 
 // 获取系统提示词的函数
@@ -20,7 +50,7 @@ export function getSystemPrompts() {
     normal: {
       id: 'normal',
       name: '普通模式',
-      systemPrompt: `你是 Morphix 助手，一个有用的AI助手。${timeInfo}。请用中文回答问题，保持简洁友好的语调。`,
+      systemPrompt: `你是 Morphix 助手，一个有用的AI助手。${timeInfo}。你可以使用搜索工具获取最新信息来回答用户问题。当用户询问需要最新信息、实时数据或具体事实时，请主动使用搜索功能。请用中文回答问题，保持简洁友好的语调。`,
       placeholder: '输入你的问题...'
     },
     translate: {
