@@ -9,6 +9,7 @@ export class AIService {
 
   constructor(config: AIConfig = AI_CONFIG) {
     this.config = config;
+    console.log('config', config);
     this.openai = new OpenAI({
       apiKey: config.apiKey,
       baseURL: config.baseURL,
