@@ -218,7 +218,7 @@ export const ChatInterface: React.FC = () => {
             <button 
               onClick={sendMessage} 
               disabled={!inputValue.trim() || isLoading}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              className="px-4 py-2 bg-gray-200 text-black rounded-md hover:bg-white disabled:opacity-50 transition-colors"
             >
               {isLoading ? '发送中...' : '发送'}
             </button>
