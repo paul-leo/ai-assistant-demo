@@ -2,6 +2,7 @@ export interface Message {
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: Date;
+  isStreaming?: boolean; // 标识是否正在流式接收
 }
 
 export interface ChatCompletionRequest {
