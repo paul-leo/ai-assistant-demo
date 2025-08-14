@@ -2,10 +2,12 @@ import OpenAI from 'openai';
 import type { ChatCompletionRequest, ChatCompletionResponse, AIConfig, SearchRequest } from '../types';
 import { AI_CONFIG, SEARCH_TOOL } from '../config/ai';
 import { searchService } from './searchService';
+import { getAMapTools, execMcpTool } from './aMapMcp';
 
 export class AIService {
   private openai: OpenAI;
   private config: AIConfig;
+  private amapTools: OpenAI.Chat.Completions.ChatCompletionTool[] = [];
 
   constructor(config: AIConfig = AI_CONFIG) {
     this.config = config;
@@ -14,6 +16,20 @@ export class AIService {
       baseURL: config.baseURL,
       dangerouslyAllowBrowser: true
     });
+    this.initializeAMapTools();
+  }
+
+  /**
+   * 初始化高德地图工具
+   */
+  private async initializeAMapTools() {
+    try {
+      this.amapTools = await getAMapTools();
+      console.log('高德地图工具已加载:', this.amapTools.length, '个工具');
+    } catch (error) {
+      console.error('加载高德地图工具失败:', error);
+      this.amapTools = [];
+    }
   }
 
   /**
@@ -27,12 +43,15 @@ export class AIService {
         ...request.messages
       ];
 
+      // 组合所有可用工具
+      const allTools = [SEARCH_TOOL, ...this.amapTools];
+
       const response = await this.openai.chat.completions.create({
         model: request.model || this.config.model,
         messages: messages,
         max_tokens: request.max_tokens || this.config.maxTokens,
         temperature: request.temperature ?? this.config.temperature,
-        tools: [SEARCH_TOOL],
+        tools: allTools,
         tool_choice: 'auto'
       });
 
@@ -136,6 +155,43 @@ export class AIService {
               tool_call_id: toolCall.id
             });
           }
+        } else if (toolCall.function.name.startsWith('amap__')) {
+          // 处理高德地图工具调用
+          try {
+            const args = JSON.parse(toolCall.function.arguments);
+            const toolName = toolCall.function.name.replace('amap__', '');
+            
+            const amapResult = await execMcpTool(toolName, args);
+            
+            let toolResponse: string;
+            if (amapResult && amapResult.content) {
+              if (Array.isArray(amapResult.content)) {
+                toolResponse = amapResult.content.map((item: unknown) => 
+                  typeof item === 'string' ? item : JSON.stringify(item, null, 2)
+                ).join('\n');
+              } else {
+                toolResponse = typeof amapResult.content === 'string' 
+                  ? amapResult.content 
+                  : JSON.stringify(amapResult.content, null, 2);
+              }
+            } else {
+              toolResponse = '高德地图工具调用成功，但未返回数据';
+            }
+
+            toolMessages.push({
+              role: 'tool' as const,
+              content: toolResponse,
+              tool_call_id: toolCall.id
+            });
+            
+          } catch (error) {
+            console.error('高德地图工具调用错误:', error);
+            toolMessages.push({
+              role: 'tool' as const,
+              content: `高德地图工具调用失败: ${error instanceof Error ? error.message : '未知错误'}`,
+              tool_call_id: toolCall.id
+            });
+          }
         }
       }
 
@@ -211,13 +267,16 @@ export class AIService {
         ...request.messages
       ];
 
+      // 组合所有可用工具
+      const allTools = [SEARCH_TOOL, ...this.amapTools];
+
       // 首先尝试非流式调用检查是否有工具调用
       const initialResponse = await this.openai.chat.completions.create({
         model: request.model || this.config.model,
         messages: messages,
         max_tokens: request.max_tokens || this.config.maxTokens,
         temperature: request.temperature ?? this.config.temperature,
-        tools: [SEARCH_TOOL],
+        tools: allTools,
         tool_choice: 'auto'
       });
 
@@ -236,7 +295,11 @@ export class AIService {
         // 处理工具调用
         const toolResult = await this.handleToolCallsForStream(messages, message.tool_calls);
         if (!toolResult.success) {
-          return toolResult;
+          return {
+            content: '',
+            success: false,
+            error: toolResult.error || '工具调用失败'
+          };
         }
 
         // 使用工具调用结果进行流式响应
@@ -345,6 +408,43 @@ export class AIService {
             toolMessages.push({
               role: 'tool' as const,
               content: '工具调用参数解析失败',
+              tool_call_id: toolCall.id
+            });
+          }
+        } else if (toolCall.function.name.startsWith('amap__')) {
+          // 处理高德地图工具调用
+          try {
+            const args = JSON.parse(toolCall.function.arguments);
+            const toolName = toolCall.function.name.replace('amap__', '');
+            
+            const amapResult = await execMcpTool(toolName, args);
+            
+            let toolResponse: string;
+            if (amapResult && amapResult.content) {
+              if (Array.isArray(amapResult.content)) {
+                toolResponse = amapResult.content.map((item: unknown) => 
+                  typeof item === 'string' ? item : JSON.stringify(item, null, 2)
+                ).join('\n');
+              } else {
+                toolResponse = typeof amapResult.content === 'string' 
+                  ? amapResult.content 
+                  : JSON.stringify(amapResult.content, null, 2);
+              }
+            } else {
+              toolResponse = '高德地图工具调用成功，但未返回数据';
+            }
+
+            toolMessages.push({
+              role: 'tool' as const,
+              content: toolResponse,
+              tool_call_id: toolCall.id
+            });
+            
+          } catch (error) {
+            console.error('高德地图工具调用错误:', error);
+            toolMessages.push({
+              role: 'tool' as const,
+              content: `高德地图工具调用失败: ${error instanceof Error ? error.message : '未知错误'}`,
               tool_call_id: toolCall.id
             });
           }

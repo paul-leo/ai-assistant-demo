@@ -1,4 +1,4 @@
-import type { AIConfig, TavilyConfig, SearchTool } from '../types';
+import type { AIConfig, TavilyConfig, SearchTool, AMapConfig } from '../types';
 import { getCurrentDateTime, getDayOfWeek } from '../utils/dateUtils';
 
 export const AI_CONFIG: AIConfig = {
@@ -14,6 +14,12 @@ export const AI_CONFIG: AIConfig = {
 export const TAVILY_CONFIG: TavilyConfig = {
   apiKey: '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',
   baseURL: 'https://api.tavily.com'
+};
+
+// 高德地图配置
+export const AMAP_CONFIG: AMapConfig = {
+  apiKey: '4255b4842e2cc1ce73cd905bd801cafc',
+  baseURL: 'https://mcp.amap.com'
 };
 
 // 搜索工具定义
@@ -50,7 +56,7 @@ export function getSystemPrompts() {
     normal: {
       id: 'normal',
       name: '普通模式',
-      systemPrompt: `你是 Morphix 助手，一个有用的AI助手。${timeInfo}。你可以使用搜索工具获取最新信息来回答用户问题。当用户询问需要最新信息、实时数据或具体事实时，请主动使用搜索功能。请用中文回答问题，保持简洁友好的语调。`,
+      systemPrompt: `你是 Morphix 助手，一个有用的AI助手。${timeInfo}。你可以使用搜索工具获取最新信息来回答用户问题。当用户询问需要最新信息、实时数据或具体事实时，请主动使用搜索功能。你还可以使用高德地图工具来提供地图、导航、地理位置查询等服务，包括地点搜索、路线规划、周边查询等功能。请用中文回答问题，保持简洁友好的语调。`,
       placeholder: '输入你的问题...'
     },
     translate: {

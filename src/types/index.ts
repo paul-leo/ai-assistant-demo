@@ -76,3 +76,22 @@ export interface TavilyConfig {
   apiKey: string;
   baseURL: string;
 }
+
+// 高德地图相关类型
+export interface AMapConfig {
+  apiKey: string;
+  baseURL: string;
+}
+
+export interface AMapTool {
+  type: "function";
+  function: {
+    name: string;
+    description: string;
+    parameters: {
+      type: "object";
+      properties: Record<string, any>;
+      required: string[];
+    };
+  };
+}
