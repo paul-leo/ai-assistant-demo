@@ -2,7 +2,7 @@ import type { AIConfig, TavilyConfig, SearchTool, AMapConfig } from '../types';
 import { getCurrentDateTime, getDayOfWeek } from '../utils/dateUtils';
 
 export const AI_CONFIG: AIConfig = {
-  apiKey: '***REMOVED***',
+  apiKey: import.meta.env.VITE_OPENROUTER_API_KEY || '',
   baseURL: 'https://openrouter.ai/api/v1',
   model: 'qwen/qwen3-coder:free',
   maxTokens: 2000,
@@ -12,13 +12,13 @@ export const AI_CONFIG: AIConfig = {
 
 // Tavily 搜索配置
 export const TAVILY_CONFIG: TavilyConfig = {
-  apiKey: '***REMOVED***',
+  apiKey: import.meta.env.VITE_TAVILY_API_KEY || '',
   baseURL: 'https://api.tavily.com'
 };
 
 // 高德地图配置
 export const AMAP_CONFIG: AMapConfig = {
-  apiKey: '***REMOVED***',
+  apiKey: import.meta.env.VITE_AMAP_API_KEY || '',
   baseURL: 'https://mcp.amap.com'
 };
 
