@@ -12,8 +12,9 @@ async function getAMapMcpClient() {
         name: 'name',
         version: '1.0.0',
     });
+    const amapKey = import.meta.env.VITE_AMAP_API_KEY || '';
     const sseTransport = new SSEClientTransport(
-        new URL('https://mcp.amap.com/sse?key=***REMOVED***')
+        new URL(`https://mcp.amap.com/sse?key=${amapKey}`)
     );
     await client.connect(sseTransport);
     CLIENT_CACHE['amap'] = client;
